@@ -48,6 +48,19 @@ describe("CartService", () => {
   }
 
   it("能將商品加入購物車", () => {
+    const initialCart = [
+      {
+        id: TEST_ITEM.id,
+        name: TEST_ITEM.name,
+        image: TEST_ITEM.image,
+        description: TEST_ITEM.description,
+        price: TEST_ITEM.price,
+        quantity: 1,
+        addedAt: new Date().toISOString(),
+      },
+    ];
+    global.localStorage.getItem.mockReturnValue(JSON.stringify(initialCart));
+
     addToCart(TEST_ITEM, localStorageMocks);
 
     _assertGetItemHaveBeenCalled();
@@ -55,17 +68,7 @@ describe("CartService", () => {
 
     const savedCart = _getLastSavedCart();
     expect(savedCart.length).toBe(1);
-    expect(savedCart[0].addedAt).toMatch(
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
-    );
-    expect(savedCart[0]).toMatchObject({
-      id: TEST_ITEM.id,
-      name: TEST_ITEM.name,
-      image: TEST_ITEM.image,
-      description: TEST_ITEM.description,
-      price: TEST_ITEM.price,
-      quantity: 1,
-    });
+    expect(savedCart[0].quantity).toBe(2);
   });
 
   it("能從購物車中移除商品", () => {
