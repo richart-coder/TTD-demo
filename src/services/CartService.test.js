@@ -2,17 +2,6 @@
 import { addToCart, deleteFromCart, getCartTotal } from "./CartService";
 
 describe("CartService", () => {
-  beforeEach(() => {
-    const mockLocalStorage = {
-      getItem: jest.fn().mockReturnValue("[]"),
-      setItem: jest.fn(),
-      removeItem: jest.fn(),
-      clear: jest.fn(),
-      length: 0,
-      key: jest.fn(),
-    };
-    global.localStorage = mockLocalStorage;
-  });
   const TEST_ITEM = {
     id: 1,
     name: "商品1",
@@ -25,25 +14,30 @@ describe("CartService", () => {
     brand: "品牌A",
   };
 
-  const localStorageMocks = {
-    getCart: () => JSON.parse(global.localStorage.getItem("cart") || "[]"),
-    setCart: (cart) =>
-      global.localStorage.setItem("cart", JSON.stringify(cart)),
-  };
-
-  function _assertGetItemHaveBeenCalled() {
-    expect(global.localStorage.getItem).toHaveBeenCalledWith("cart");
+  function createStorageMock(initialCart = []) {
+    return {
+      getItem: jest.fn().mockReturnValue(JSON.stringify(initialCart)),
+      setItem: jest.fn(),
+    };
   }
 
-  function _assertSetItemHaveBeenCalled() {
-    expect(global.localStorage.setItem).toHaveBeenCalledWith(
+  function assertGetItemCalled(mockStorage) {
+    expect(mockStorage.getItem).toHaveBeenCalledWith("cart");
+  }
+
+  function assertSetItemCalled(mockStorage) {
+    expect(mockStorage.setItem).toHaveBeenCalledWith(
       "cart",
       expect.any(String)
     );
   }
 
-  function _getLastSavedCart() {
-    const setItemCall = global.localStorage.setItem.mock.calls[0];
+  function assertSetItemNotCalled(mockStorage) {
+    expect(mockStorage.setItem).not.toHaveBeenCalled();
+  }
+
+  function getLastSavedCart(mockStorage) {
+    const setItemCall = mockStorage.setItem.mock.calls[0];
     return JSON.parse(setItemCall[1]);
   }
 
@@ -59,42 +53,38 @@ describe("CartService", () => {
         addedAt: new Date().toISOString(),
       },
     ];
-    global.localStorage.getItem.mockReturnValue(JSON.stringify(initialCart));
+    const mockStorage = createStorageMock(initialCart);
 
-    addToCart(TEST_ITEM, localStorageMocks);
+    addToCart(TEST_ITEM, mockStorage);
 
-    _assertGetItemHaveBeenCalled();
-    _assertSetItemHaveBeenCalled();
-
-    const savedCart = _getLastSavedCart();
+    assertGetItemCalled(mockStorage);
+    assertSetItemCalled(mockStorage);
+    const savedCart = getLastSavedCart(mockStorage);
     expect(savedCart.length).toBe(1);
     expect(savedCart[0].quantity).toBe(2);
   });
 
   it("能從購物車中移除商品", () => {
     const itemId = 2;
-    const cartWithItem = [{ id: itemId }];
-    global.localStorage.getItem.mockReturnValue(JSON.stringify(cartWithItem));
+    const mockStorage = createStorageMock([{ id: itemId }]);
 
-    deleteFromCart(itemId, localStorageMocks);
+    deleteFromCart(itemId, mockStorage);
 
-    _assertGetItemHaveBeenCalled();
-    _assertSetItemHaveBeenCalled();
-
-    const savedCart = _getLastSavedCart();
+    assertGetItemCalled(mockStorage);
+    assertSetItemCalled(mockStorage);
+    const savedCart = getLastSavedCart(mockStorage);
     expect(savedCart.length).toBe(0);
   });
 
   it("驗證移除不存在的商品", () => {
     const existingItemId = 2;
     const nonExistingItemId = 999;
-    const initialCart = [{ id: existingItemId }];
-    global.localStorage.getItem.mockReturnValue(JSON.stringify(initialCart));
+    const mockStorage = createStorageMock([{ id: existingItemId }]);
 
-    deleteFromCart(nonExistingItemId, localStorageMocks);
+    deleteFromCart(nonExistingItemId, mockStorage);
 
-    _assertGetItemHaveBeenCalled();
-    expect(global.localStorage.setItem).not.toHaveBeenCalled();
+    assertGetItemCalled(mockStorage);
+    assertSetItemNotCalled(mockStorage);
   });
 
   it("能夠計算購物車總金額", () => {
@@ -103,10 +93,9 @@ describe("CartService", () => {
       { price: 300, quantity: 3 },
     ];
     const expectedTotal = 1300;
+    const mockStorage = createStorageMock(cartWithItems);
 
-    global.localStorage.getItem.mockReturnValue(JSON.stringify(cartWithItems));
-
-    const total = getCartTotal(localStorageMocks);
+    const total = getCartTotal(mockStorage);
 
     expect(total).toBe(expectedTotal);
   });

@@ -1,15 +1,5 @@
-function _getCart() {
-  return JSON.parse(localStorage.getItem("cart") ?? "[]");
-}
-function _setCart(cart) {
-  localStorage.setItem("cart", JSON.stringify(cart));
-}
-
-export function addToCart(
-  item,
-  { getCart = _getCart, setCart = _setCart } = {}
-) {
-  const cart = getCart();
+export function addToCart(item, storage) {
+  const cart = JSON.parse(storage.getItem("cart") ?? "[]");
   const existingItem = cart.find((_item) => _item.id === item.id);
 
   if (existingItem) {
@@ -25,22 +15,19 @@ export function addToCart(
       addedAt: new Date().toISOString(),
     });
   }
-  setCart(cart);
+  storage.setItem("cart", JSON.stringify(cart));
 }
 
-export function deleteFromCart(
-  id,
-  { getCart = _getCart, setCart = _setCart } = {}
-) {
-  const cart = getCart();
+export function deleteFromCart(id, storage) {
+  const cart = JSON.parse(storage.getItem("cart") ?? "[]");
   const index = cart.findIndex((item) => item.id === id);
   if (index !== -1) {
     cart.splice(index, 1);
-    setCart(cart);
+    storage.setItem("cart", JSON.stringify(cart));
   }
 }
 
-export function getCartTotal({ getCart = _getCart } = {}) {
-  const cart = getCart();
+export function getCartTotal(storage) {
+  const cart = JSON.parse(storage.getItem("cart") ?? "[]");
   return cart.reduce((total, item) => total + item.price * item.quantity, 0);
 }
