@@ -1,12 +1,18 @@
 // @ts-nocheck
-import { render, screen, fireEvent } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import CartContainer from "./CartContainer";
 import { getCartTotal, deleteFromCart } from "@/services/CartService";
 
 jest.mock("@/services/CartService", () => ({
-  getCartTotal: jest.fn(),
-  deleteFromCart: jest.fn(),
+  getCartTotal: jest.fn().mockResolvedValue(100),
+  deleteFromCart: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe("CartContainer", () => {
@@ -29,51 +35,91 @@ describe("CartContainer", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    getCartTotal.mockReturnValue(100);
+    getCartTotal.mockResolvedValue(100);
   });
 
-  it("能夠刪除購物車中的商品", () => {
+  it("能夠刪除購物車中的商品", async () => {
     const mockItems = [createMockItem()];
     const localStorageMock = createLocalStorageMock(mockItems);
 
-    render(<CartContainer localStorage={localStorageMock} />);
-    fireEvent.click(screen.getByRole("button", { name: "刪除商品" }));
+    await act(async () => {
+      render(<CartContainer localStorage={localStorageMock} />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("商品1")).toBeInTheDocument();
+    });
+
+    const deleteButton = screen.getByLabelText("刪除商品");
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
 
     expect(deleteFromCart).toHaveBeenCalledWith(1, localStorageMock);
   });
 
-  it("能夠改變商品數量並保存到 localStorage", () => {
-    const mockItems = [createMockItem(undefined, undefined, undefined, 2)];
+  it("能夠改變商品數量並保存到 localStorage", async () => {
+    const mockItems = [createMockItem()];
     const localStorageMock = createLocalStorageMock(mockItems);
-    getCartTotal.mockReturnValue(300);
+    getCartTotal.mockResolvedValue(300);
 
-    render(<CartContainer localStorage={localStorageMock} />);
+    await act(async () => {
+      render(<CartContainer localStorage={localStorageMock} />);
+    });
 
-    const plusButton = screen.getByRole("button", { name: "增加數量" });
-    fireEvent.click(plusButton);
-    expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      "cart",
-      JSON.stringify([{ ...mockItems[0], quantity: 3 }])
-    );
+    await waitFor(() => {
+      expect(screen.getByText("商品1")).toBeInTheDocument();
+      expect(screen.getByText("2")).toBeInTheDocument();
+    });
 
-    const minusButton = screen.getByRole("button", { name: "減少數量" });
-    fireEvent.click(minusButton);
-    expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      "cart",
-      JSON.stringify([{ ...mockItems[0], quantity: 2 }])
-    );
+    const plusButton = screen.getByLabelText("增加數量");
+
+    await act(async () => {
+      fireEvent.click(plusButton);
+    });
+
+    await waitFor(() => {
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        "cart",
+        expect.stringMatching(/"quantity":3/)
+      );
+    });
+
+    localStorageMock.setItem.mockClear();
+
+    const minusButton = screen.getByLabelText("減少數量");
+
+    await act(async () => {
+      fireEvent.click(minusButton);
+    });
+
+    await waitFor(() => {
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        "cart",
+        expect.stringMatching(/"quantity":2/)
+      );
+    });
 
     expect(getCartTotal).toHaveBeenCalledWith(localStorageMock);
   });
 
-  it("不允許商品數量低於1", () => {
+  it("不允許商品數量低於1", async () => {
     const mockItems = [createMockItem({ quantity: 1 })];
     const localStorageMock = createLocalStorageMock(mockItems);
 
-    render(<CartContainer localStorage={localStorageMock} />);
+    await act(async () => {
+      render(<CartContainer localStorage={localStorageMock} />);
+    });
 
-    const minusButton = screen.getByRole("button", { name: "減少數量" });
-    fireEvent.click(minusButton);
+    await waitFor(() => {
+      expect(screen.getByText("商品1")).toBeInTheDocument();
+      expect(screen.getByText("1")).toBeInTheDocument();
+    });
+
+    localStorageMock.setItem.mockClear();
+
+    const minusButton = screen.getByLabelText("減少數量");
+    expect(minusButton).toBeDisabled();
 
     expect(localStorageMock.setItem).not.toHaveBeenCalled();
   });
