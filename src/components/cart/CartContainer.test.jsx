@@ -10,12 +10,12 @@ jest.mock("@/services/CartService", () => ({
 }));
 
 describe("CartContainer", () => {
-  const createMockItem = (
+  const createMockItem = ({
     id = 1,
     name = "商品1",
     price = 100,
-    quantity = 2
-  ) => ({
+    quantity = 2,
+  } = {}) => ({
     id,
     name,
     price,
@@ -64,5 +64,17 @@ describe("CartContainer", () => {
     );
 
     expect(getCartTotal).toHaveBeenCalledWith(localStorageMock);
+  });
+
+  it("不允許商品數量低於1", () => {
+    const mockItems = [createMockItem({ quantity: 1 })];
+    const localStorageMock = createLocalStorageMock(mockItems);
+
+    render(<CartContainer localStorage={localStorageMock} />);
+
+    const minusButton = screen.getByRole("button", { name: "減少數量" });
+    fireEvent.click(minusButton);
+
+    expect(localStorageMock.setItem).not.toHaveBeenCalled();
   });
 });

@@ -22,9 +22,7 @@ const CartItem = ({ item, onDelete, onUpdateQuantity, className = "" }) => {
             <label>數量：</label>
             <button
               className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded hover:bg-gray-300 text-lg font-bold"
-              onClick={() =>
-                onUpdateQuantity?.(item.id, Math.max(1, item.quantity - 1))
-              }
+              onClick={() => onUpdateQuantity?.(item.id, item.quantity - 1)}
               aria-label="減少數量"
               disabled={item.quantity <= 1}
             >
