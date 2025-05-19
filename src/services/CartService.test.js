@@ -16,8 +16,8 @@ describe("CartService", () => {
 
   function createStorageMock(initialCart = []) {
     return {
-      getItem: jest.fn().mockReturnValue(JSON.stringify(initialCart)),
-      setItem: jest.fn(),
+      getItem: jest.fn().mockResolvedValue(JSON.stringify(initialCart)), // 改為 mockResolvedValue
+      setItem: jest.fn().mockResolvedValue(undefined), // 改為 mockResolvedValue
     };
   }
 
@@ -41,7 +41,7 @@ describe("CartService", () => {
     return JSON.parse(setItemCall[1]);
   }
 
-  it("能將商品加入購物車", () => {
+  it("能將商品加入購物車", async () => {
     const initialCart = [
       {
         id: TEST_ITEM.id,
@@ -55,7 +55,7 @@ describe("CartService", () => {
     ];
     const mockStorage = createStorageMock(initialCart);
 
-    addToCart(TEST_ITEM, mockStorage);
+    await addToCart(TEST_ITEM, mockStorage); // 添加 await
 
     assertGetItemCalled(mockStorage);
     assertSetItemCalled(mockStorage);
@@ -64,11 +64,11 @@ describe("CartService", () => {
     expect(savedCart[0].quantity).toBe(2);
   });
 
-  it("能從購物車中移除商品", () => {
+  it("能從購物車中移除商品", async () => {
     const itemId = 2;
     const mockStorage = createStorageMock([{ id: itemId }]);
 
-    deleteFromCart(itemId, mockStorage);
+    await deleteFromCart(itemId, mockStorage); // 添加 await
 
     assertGetItemCalled(mockStorage);
     assertSetItemCalled(mockStorage);
@@ -76,18 +76,18 @@ describe("CartService", () => {
     expect(savedCart.length).toBe(0);
   });
 
-  it("驗證移除不存在的商品", () => {
+  it("驗證移除不存在的商品", async () => {
     const existingItemId = 2;
     const nonExistingItemId = 999;
     const mockStorage = createStorageMock([{ id: existingItemId }]);
 
-    deleteFromCart(nonExistingItemId, mockStorage);
+    await deleteFromCart(nonExistingItemId, mockStorage); // 添加 await
 
     assertGetItemCalled(mockStorage);
     assertSetItemNotCalled(mockStorage);
   });
 
-  it("能夠計算購物車總金額", () => {
+  it("能夠計算購物車總金額", async () => {
     const cartWithItems = [
       { price: 200, quantity: 2 },
       { price: 300, quantity: 3 },
@@ -95,7 +95,7 @@ describe("CartService", () => {
     const expectedTotal = 1300;
     const mockStorage = createStorageMock(cartWithItems);
 
-    const total = getCartTotal(mockStorage);
+    const total = await getCartTotal(mockStorage); // 添加 await
 
     expect(total).toBe(expectedTotal);
   });

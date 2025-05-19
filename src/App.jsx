@@ -1,11 +1,11 @@
 import React from "react";
 import { CartContainer } from "./components/cart";
-
+import db from "./db/ShopDB";
 function App() {
   return (
     <div className="app">
       <main>
-        <CartContainer />
+        <CartContainer localStorage={db} />
       </main>
     </div>
   );

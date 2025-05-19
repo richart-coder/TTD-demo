@@ -30,38 +30,38 @@ const initialItems = [
   },
 ];
 
-const CartContainer = ({ localStorage = window.localStorage }) => {
+const CartContainer = ({ localStorage }) => {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const loadCart = () => {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const loadCart = async () => {
+      const cart = JSON.parse((await localStorage.getItem("cart")) || "[]");
       if (cart.length === 0) {
-        localStorage.setItem("cart", JSON.stringify(initialItems));
+        await localStorage.setItem("cart", JSON.stringify(initialItems));
         setItems(initialItems);
       } else {
         setItems(cart);
       }
-      setTotal(getCartTotal(localStorage));
+      setTotal(await getCartTotal(localStorage));
     };
 
     loadCart();
   }, [localStorage]);
 
-  const handleDelete = (id) => {
-    deleteFromCart(id, localStorage);
+  const handleDelete = async (id) => {
+    await deleteFromCart(id, localStorage);
     setItems((prev) => prev.filter((item) => item.id !== id));
     setTotal(getCartTotal(localStorage));
   };
 
-  const handleUpdateQuantity = (id, quantity) => {
+  const handleUpdateQuantity = async (id, quantity) => {
     const updatedItems = items.map((item) =>
       item.id === id ? { ...item, quantity } : item
     );
-    localStorage.setItem("cart", JSON.stringify(updatedItems));
+    await localStorage.setItem("cart", JSON.stringify(updatedItems));
     setItems(updatedItems);
-    setTotal(getCartTotal(localStorage));
+    setTotal(await getCartTotal(localStorage));
   };
 
   return (
