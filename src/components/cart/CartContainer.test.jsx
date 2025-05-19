@@ -59,7 +59,7 @@ describe("CartContainer", () => {
   });
 
   it("能夠改變商品數量並保存到 localStorage", async () => {
-    const mockItems = [createMockItem()]; // 數量默認為2
+    const mockItems = [createMockItem()];
     const localStorageMock = createLocalStorageMock(mockItems);
     getCartTotal.mockResolvedValue(300);
 
@@ -69,7 +69,7 @@ describe("CartContainer", () => {
 
     await waitFor(() => {
       expect(screen.getByText("商品1")).toBeInTheDocument();
-      expect(screen.getByText("2")).toBeInTheDocument(); // 確認初始數量是2
+      expect(screen.getByText("2")).toBeInTheDocument();
     });
 
     const plusButton = screen.getByLabelText("增加數量");
@@ -113,7 +113,7 @@ describe("CartContainer", () => {
 
     await waitFor(() => {
       expect(screen.getByText("商品1")).toBeInTheDocument();
-      expect(screen.getByText("1")).toBeInTheDocument(); // 確認數量是1
+      expect(screen.getByText("1")).toBeInTheDocument();
     });
 
     localStorageMock.setItem.mockClear();
