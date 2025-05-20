@@ -1,8 +1,25 @@
 // @ts-nocheck
 import React from "react";
 import CartItem from "./CartItem";
-
-const Cart = ({ items, onDelete, onUpdateQuantity, total }) => {
+import Spinner from "../ui/Spinner";
+const conditionalRender = {
+  loading: () => <Spinner />,
+  empty: () => <p>購物車是空的</p>,
+  data: (items, onDelete, onUpdateQuantity) => (
+    <ul className="flex flex-col items-center w-full max-w-2xl mx-auto">
+      {items.map((item) => (
+        <CartItem
+          key={item.id}
+          item={item}
+          onDelete={onDelete}
+          onUpdateQuantity={onUpdateQuantity}
+        />
+      ))}
+    </ul>
+  ),
+};
+const Cart = ({ items, isLoading, onDelete, onUpdateQuantity, total }) => {
+  const status = isLoading ? "loading" : items.length === 0 ? "empty" : "data";
   return (
     <section
       role="region"
@@ -17,20 +34,7 @@ const Cart = ({ items, onDelete, onUpdateQuantity, total }) => {
           NT$ {total.toLocaleString()}
         </span>
       </div>
-      {items.length === 0 ? (
-        <p className="text-gray-500">購物車是空的</p>
-      ) : (
-        <ul className="flex flex-col items-center w-full max-w-2xl mx-auto">
-          {items.map((item) => (
-            <CartItem
-              key={item.id}
-              item={item}
-              onDelete={onDelete}
-              onUpdateQuantity={onUpdateQuantity}
-            />
-          ))}
-        </ul>
-      )}
+      {conditionalRender[status](items, onDelete, onUpdateQuantity)}
     </section>
   );
 };

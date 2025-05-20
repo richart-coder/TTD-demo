@@ -1,7 +1,11 @@
 // @ts-nocheck
 import React, { useEffect, useState } from "react";
 import Cart from "./Cart";
-import { getCartTotal, deleteFromCart } from "@/services/CartService";
+import {
+  deleteFromCart,
+  getCart,
+  updateQuantityFromCart,
+} from "../../services/CartService";
 
 const initialItems = [
   {
@@ -30,46 +34,40 @@ const initialItems = [
   },
 ];
 
-const CartContainer = ({ localStorage }) => {
+const CartContainer = () => {
   const [items, setItems] = useState([]);
-  const [total, setTotal] = useState(0);
-
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     const loadCart = async () => {
-      const cart = JSON.parse((await localStorage.getItem("cart")) || "[]");
+      const cart = await getCart();
       if (cart.length === 0) {
-        await localStorage.setItem("cart", JSON.stringify(initialItems));
         setItems(initialItems);
       } else {
         setItems(cart);
       }
-      setTotal(await getCartTotal(localStorage));
+      setIsLoading(false);
     };
 
     loadCart();
-  }, [localStorage]);
+  }, []);
 
   const handleDelete = async (id) => {
-    await deleteFromCart(id, localStorage);
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    setTotal(getCartTotal(localStorage));
+    const updatedItems = deleteFromCart(id, items);
+    setItems(updatedItems);
   };
 
   const handleUpdateQuantity = async (id, quantity) => {
-    const updatedItems = items.map((item) =>
-      item.id === id ? { ...item, quantity } : item
-    );
-    await localStorage.setItem("cart", JSON.stringify(updatedItems));
+    const updatedItems = updateQuantityFromCart(id, quantity, items);
     setItems(updatedItems);
-    setTotal(await getCartTotal(localStorage));
   };
 
   return (
     <Cart
       items={items}
+      isLoading={isLoading}
       onDelete={handleDelete}
       onUpdateQuantity={handleUpdateQuantity}
-      total={total}
+      total={items.reduce((acc, item) => acc + item.price * item.quantity, 0)}
     />
   );
 };

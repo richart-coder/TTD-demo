@@ -1,102 +1,59 @@
 // @ts-nocheck
-import { addToCart, deleteFromCart, getCartTotal } from "./CartService";
+import {
+  addToCart,
+  deleteFromCart,
+  updateQuantityFromCart,
+  getCart,
+} from "./CartService";
+import db from "../db/ShopDB";
+
+jest.mock("../db/ShopDB", () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+}));
 
 describe("CartService", () => {
-  const TEST_ITEM = {
-    id: 1,
-    name: "商品1",
-    price: 100,
-    image: "https://example.com/image1.jpg",
-    description: "這是商品1的描述",
-    category: "電子產品",
-    stock: 10,
-    sku: "ELEC-001",
-    brand: "品牌A",
-  };
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  function createStorageMock(initialCart = []) {
-    return {
-      getItem: jest.fn().mockResolvedValue(JSON.stringify(initialCart)), // 改為 mockResolvedValue
-      setItem: jest.fn().mockResolvedValue(undefined), // 改為 mockResolvedValue
-    };
-  }
+  it("能夠回傳購物車內容", async () => {
+    const mockCart = [{ id: 1, name: "商品1", price: 100, quantity: 1 }];
+    db.getItem.mockResolvedValue(JSON.stringify(mockCart));
 
-  function assertGetItemCalled(mockStorage) {
-    expect(mockStorage.getItem).toHaveBeenCalledWith("cart");
-  }
+    const result = await getCart();
 
-  function assertSetItemCalled(mockStorage) {
-    expect(mockStorage.setItem).toHaveBeenCalledWith(
-      "cart",
-      expect.any(String)
-    );
-  }
+    expect(result).toEqual(mockCart);
+    expect(db.getItem).toHaveBeenCalledWith("cart");
+  });
 
-  function assertSetItemNotCalled(mockStorage) {
-    expect(mockStorage.setItem).not.toHaveBeenCalled();
-  }
+  it("能夠添加新商品", async () => {
+    const cart = [];
+    const newItem = { id: 1, name: "商品1", price: 100 };
 
-  function getLastSavedCart(mockStorage) {
-    const setItemCall = mockStorage.setItem.mock.calls[0];
-    return JSON.parse(setItemCall[1]);
-  }
+    const result = addToCart(newItem, cart);
 
-  it("能將商品加入購物車", async () => {
-    const initialCart = [
-      {
-        id: TEST_ITEM.id,
-        name: TEST_ITEM.name,
-        image: TEST_ITEM.image,
-        description: TEST_ITEM.description,
-        price: TEST_ITEM.price,
-        quantity: 1,
-        addedAt: new Date().toISOString(),
-      },
+    expect(result[0].id).toBe(1);
+    expect(result[0].quantity).toBe(1);
+  });
+
+  it("能夠刪除商品", async () => {
+    const cart = [
+      { id: 1, name: "商品1", price: 100, quantity: 1 },
+      { id: 2, name: "商品2", price: 200, quantity: 1 },
     ];
-    const mockStorage = createStorageMock(initialCart);
 
-    await addToCart(TEST_ITEM, mockStorage); // 添加 await
+    const result = deleteFromCart(1, cart);
 
-    assertGetItemCalled(mockStorage);
-    assertSetItemCalled(mockStorage);
-    const savedCart = getLastSavedCart(mockStorage);
-    expect(savedCart.length).toBe(1);
-    expect(savedCart[0].quantity).toBe(2);
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe(2);
   });
 
-  it("能從購物車中移除商品", async () => {
-    const itemId = 2;
-    const mockStorage = createStorageMock([{ id: itemId }]);
+  it("能夠更新商品數量", async () => {
+    const cart = [{ id: 1, name: "商品1", price: 100, quantity: 1 }];
 
-    await deleteFromCart(itemId, mockStorage); // 添加 await
+    const result = updateQuantityFromCart(1, 3, cart);
 
-    assertGetItemCalled(mockStorage);
-    assertSetItemCalled(mockStorage);
-    const savedCart = getLastSavedCart(mockStorage);
-    expect(savedCart.length).toBe(0);
-  });
-
-  it("驗證移除不存在的商品", async () => {
-    const existingItemId = 2;
-    const nonExistingItemId = 999;
-    const mockStorage = createStorageMock([{ id: existingItemId }]);
-
-    await deleteFromCart(nonExistingItemId, mockStorage); // 添加 await
-
-    assertGetItemCalled(mockStorage);
-    assertSetItemNotCalled(mockStorage);
-  });
-
-  it("能夠計算購物車總金額", async () => {
-    const cartWithItems = [
-      { price: 200, quantity: 2 },
-      { price: 300, quantity: 3 },
-    ];
-    const expectedTotal = 1300;
-    const mockStorage = createStorageMock(cartWithItems);
-
-    const total = await getCartTotal(mockStorage); // 添加 await
-
-    expect(total).toBe(expectedTotal);
+    expect(result[0].quantity).toBe(3);
   });
 });
