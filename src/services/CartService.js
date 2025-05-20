@@ -1,5 +1,6 @@
 import db from "../db/ShopDB";
 
+const MAX_ITEMS = 100;
 /**
  * 獲取購物車
  * @returns {Promise<Array>} 購物車內容
@@ -19,37 +20,36 @@ export async function getCart() {
  * @param {Object} cart - 存儲對象
  */
 export function addToCart(item, cart) {
+  if (cart.length >= MAX_ITEMS) {
+    throw new Error("購物車已達到最大容量");
+  }
   const index = cart.findIndex((_item) => _item.id === item.id);
   let updatedCart;
-  try {
-    if (index === -1) {
-      updatedCart = [
-        {
-          id: item.id,
-          name: item.name,
-          image: item.image,
-          description: item.description,
-          price: item.price,
-          quantity: 1,
-          addedAt: new Date().toISOString(),
-        },
-        ...cart,
-      ];
-    } else {
-      updatedCart = [...cart];
-      updatedCart[index] = {
-        ...updatedCart[index],
-        quantity: updatedCart[index].quantity + 1,
-      };
-    }
-    (async () => {
-      await db.setItem("cart", JSON.stringify(updatedCart));
-    })();
-    return updatedCart;
-  } catch (error) {
-    console.error(error);
-    throw error;
+
+  if (index === -1) {
+    updatedCart = [
+      {
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        description: item.description,
+        price: item.price,
+        quantity: 1,
+        addedAt: new Date().toISOString(),
+      },
+      ...cart,
+    ];
+  } else {
+    updatedCart = [...cart];
+    updatedCart[index] = {
+      ...updatedCart[index],
+      quantity: updatedCart[index].quantity + 1,
+    };
   }
+  (async () => {
+    await db.setItem("cart", JSON.stringify(updatedCart));
+  })();
+  return updatedCart;
 }
 
 /**

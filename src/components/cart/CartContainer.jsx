@@ -40,14 +40,9 @@ const CartContainer = () => {
   useEffect(() => {
     const loadCart = async () => {
       const cart = await getCart();
-      if (cart.length === 0) {
-        setItems(initialItems);
-      } else {
-        setItems(cart);
-      }
+      setItems(cart.length === 0 ? initialItems : cart);
       setIsLoading(false);
     };
-
     loadCart();
   }, []);
 
