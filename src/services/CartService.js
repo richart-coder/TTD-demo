@@ -1,57 +1,76 @@
 import db from "../db/ShopDB";
 
+const MAX_ITEMS = 100;
+/**
+ * 獲取購物車
+ * @returns {Promise<Array>} 購物車內容
+ */
+export async function getCart() {
+  try {
+    const cartJson = await db.getItem("cart");
+    return JSON.parse(cartJson ?? "[]");
+  } catch (error) {
+    console.error("讀取購物車失敗:", error);
+    return [];
+  }
+}
 /**
  * 添加商品到購物車
  * @param {Object} item - 商品對象
- * @param {Object} storage - 存儲對象，現在可以是 localStorage 或 db
+ * @param {Object} cart - 存儲對象
  */
-export async function addToCart(item, storage = db) {
-  const cartJson = await storage.getItem("cart");
-  const cart = JSON.parse(cartJson ?? "[]");
-
-  const existingItem = cart.find((_item) => _item.id === item.id);
-
-  if (existingItem) {
-    existingItem.quantity += 1;
-  } else {
-    cart.push({
-      id: item.id,
-      name: item.name,
-      image: item.image,
-      description: item.description,
-      price: item.price,
-      quantity: 1,
-      addedAt: new Date().toISOString(),
-    });
+export function addToCart(item, cart) {
+  if (cart.length >= MAX_ITEMS) {
+    throw new Error("購物車已達到最大容量");
   }
+  const index = cart.findIndex((_item) => _item.id === item.id);
+  let updatedCart;
 
-  await storage.setItem("cart", JSON.stringify(cart));
+  if (index === -1) {
+    updatedCart = [
+      {
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        description: item.description,
+        price: item.price,
+        quantity: 1,
+        addedAt: new Date().toISOString(),
+      },
+      ...cart,
+    ];
+  } else {
+    updatedCart = [...cart];
+    updatedCart[index] = {
+      ...updatedCart[index],
+      quantity: updatedCart[index].quantity + 1,
+    };
+  }
+  (async () => {
+    await db.setItem("cart", JSON.stringify(updatedCart));
+  })();
+  return updatedCart;
 }
 
 /**
  * 從購物車刪除商品
  * @param {string|number} id - 商品ID
- * @param {Object} storage - 存儲對象
+ * @param {Object} cart - 存儲對象
  */
-export async function deleteFromCart(id, storage = db) {
-  const cartJson = await storage.getItem("cart");
-  const cart = JSON.parse(cartJson ?? "[]");
-
-  const index = cart.findIndex((item) => item.id === id);
-  if (index !== -1) {
-    cart.splice(index, 1);
-    await storage.setItem("cart", JSON.stringify(cart));
-  }
+export function deleteFromCart(id, cart) {
+  const filteredCart = cart.filter((item) => item.id !== id);
+  (async () => {
+    await db.setItem("cart", JSON.stringify(filteredCart));
+  })();
+  return filteredCart;
 }
 
-/**
- * 計算購物車總額
- * @param {Object} storage - 存儲對象
- * @returns {Promise<number>} - 購物車總額
- */
-export async function getCartTotal(storage = db) {
-  const cartJson = await storage.getItem("cart");
-  const cart = JSON.parse(cartJson ?? "[]");
-
-  return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+export function updateQuantityFromCart(id, quantity, cart) {
+  const updatedCart = cart.map((item) =>
+    item.id === id ? { ...item, quantity } : item
+  );
+  (async () => {
+    await db.setItem("cart", JSON.stringify(updatedCart));
+  })();
+  return updatedCart;
 }
