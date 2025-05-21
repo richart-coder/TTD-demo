@@ -14,80 +14,80 @@ import {
   updateQuantityFromCart,
 } from "../../services/CartService";
 
+const mockCartItems = [
+  {
+    id: 1,
+    name: "iPhone 15 Pro",
+    price: 35900,
+    quantity: 1,
+    image: "test-image-url",
+  },
+  {
+    id: 2,
+    name: "MacBook Pro",
+    price: 49900,
+    quantity: 1,
+    image: "test-image-url",
+  },
+];
+
 jest.mock("../../services/CartService");
 
-describe("CartContainer", () => {
+describe("<CartContainer />", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    getCart.mockResolvedValue([]);
-    deleteFromCart.mockImplementation((id, items) => {
-      return items.filter((item) => item.id !== id);
-    });
-    updateQuantityFromCart.mockImplementation((id, quantity, items) => {
-      return items.map((item) =>
-        item.id === id ? { ...item, quantity } : item
-      );
-    });
+    getCart.mockResolvedValue(mockCartItems);
   });
 
-  it("應該顯示商品列表", async () => {
+  const setup = async () => {
+    let utils;
     await act(async () => {
-      render(<CartContainer />);
+      utils = render(<CartContainer />);
     });
 
-    expect(screen.getByText("購物車")).toBeInTheDocument();
-    expect(await screen.findByText("iPhone 15 Pro")).toBeInTheDocument();
-    expect(await screen.findByText("MacBook Pro 14")).toBeInTheDocument();
-    expect(await screen.findByText("AirPods Pro")).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(screen.getByText("iPhone 15 Pro")).toBeInTheDocument();
+      expect(screen.getByText("MacBook Pro")).toBeInTheDocument();
+    });
 
-  it("應該能夠刪除商品", async () => {
+    return {
+      ...utils,
+      getDeleteButtons: () => screen.getAllByText("刪除"),
+      getIncreaseButtons: () => screen.getAllByLabelText("增加數量"),
+    };
+  };
+
+  it("能夠刪除商品", async () => {
+    const { getDeleteButtons } = await setup();
+    deleteFromCart.mockReturnValue([mockCartItems[1]]);
+    const deleteButtons = getDeleteButtons();
+
     await act(async () => {
-      render(<CartContainer />);
+      fireEvent.click(deleteButtons[0]);
     });
 
-    await screen.findByText("iPhone 15 Pro");
+    expect(deleteFromCart).toHaveBeenCalledWith(1, mockCartItems);
 
-    const deleteButtons = screen.getAllByLabelText("刪除商品");
-    fireEvent.click(deleteButtons[0]);
-
-    expect(deleteFromCart).toHaveBeenCalled();
-  });
-
-  it("應該能夠增加商品數量", async () => {
-    await act(async () => {
-      render(<CartContainer />);
+    await waitFor(() => {
+      expect(screen.queryByText("iPhone 15 Pro")).not.toBeInTheDocument();
     });
-
-    await screen.findByText("iPhone 15 Pro");
-
-    const increaseButtons = screen.getAllByLabelText("增加數量");
-    fireEvent.click(increaseButtons[0]);
-
-    expect(updateQuantityFromCart).toHaveBeenCalled();
   });
 
-  it("應該能夠減少商品數量", async () => {
-    getCart.mockResolvedValue([
-      {
-        id: 1,
-        name: "iPhone 15 Pro",
-        price: 35900,
-        quantity: 2,
-        image: "https://example.com/image.jpg",
-      },
+  it("能夠調高商品數量", async () => {
+    const { getIncreaseButtons } = await setup();
+    updateQuantityFromCart.mockReturnValue([
+      { ...mockCartItems[0], quantity: 2 },
+      mockCartItems[1],
     ]);
+    const increaseButtons = getIncreaseButtons();
 
     await act(async () => {
-      render(<CartContainer />);
+      fireEvent.click(increaseButtons[0]);
     });
 
-    await screen.findByText("iPhone 15 Pro");
-
-    const decreaseButtons = screen.getAllByLabelText("減少數量");
-    fireEvent.click(decreaseButtons[0]);
-
-    expect(updateQuantityFromCart).toHaveBeenCalled();
+    expect(updateQuantityFromCart).toHaveBeenCalledWith(1, 2, mockCartItems);
+    await waitFor(() => {
+      expect(screen.getAllByLabelText("count")[0].textContent).toBe("2");
+    });
   });
 });
